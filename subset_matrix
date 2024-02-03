@@ -1,0 +1,79 @@
+Load the necessary library
+library(dplyr)
+setwd('C:\\Users\\91934\\Downloads\\project01')
+
+# Read the CSV files into data frames
+subset_data <- read.csv("subset.csv")
+mutation_data <- read.csv("data_mutation.csv")
+
+# List of specific Tumor_Sample_Barcode values to match
+barcode_values <- c(
+  "TCGA-A1-A0SO-01",
+  "TCGA-A7-A26I-01",
+  "TCGA-A8-A09G-01",
+  "TCGA-AC-A23H-01",
+  "TCGA-AN-A046-01",
+  "TCGA-AO-A0J3-01",
+  "TCGA-AO-A0J6-01",
+  "TCGA-AQ-A04J-01",
+  "TCGA-AR-A0U3-01",
+  "TCGA-BH-A18G-01",
+  "TCGA-C8-A26Y-01",
+  "TCGA-D8-A140-01",
+  "TCGA-D8-A1JA-01",
+  "TCGA-D8-A27M-01",
+  "TCGA-D8-A27V-01",
+  "TCGA-EW-A2FV-01",
+  "TCGA-EW-A6SB-01",
+  "TCGA-PE-A5DE-01"
+)
+
+# Filter the rows in mutation_data that match the specified barcodes
+matching_rows <- mutation_data %>%
+  filter(Tumor_Sample_Barcode %in% barcode_values)
+
+# Print the number of matching rows
+cat("Number of matching rows:", nrow(matching_rows), "\n")
+
+# Write the matching rows to a new CSV file
+write.csv(matching_rows, "matching_rows1.csv", row.names = FALSE)
+
+# Confirm that the CSV file has been created
+cat("Matching rows have been written to 'matching_rows1.csv'.\n")
+# Get the values from subset_data that match the values in barcode_values
+matched_values <- subset_data$Tumor_Sample_Barcode[subset_data$Tumor_Sample_Barcode %in% barcode_values]
+
+# Print the matched values
+print(matched_values)
+# Select the specific columns
+selected_columns <- matching_rows %>%
+  select(Tumor_Sample_Barcode, Variant_Type, Chromosome, Start_Position, Reference_Allele, Tumor_Seq_Allele2)
+
+# Write the selected columns to a new CSV file
+write.csv(selected_columns, "selected_columns.csv", row.names = FALSE)
+
+# Confirm that the CSV file has been created
+cat("Selected columns have been written to 'selected_columns.csv'.\n")
+
+ ######################################################################################################
+# Load the required library if not already loaded
+# install.packages("dplyr")
+library(dplyr)
+setwd('C:\\Users\\91934\\Downloads\\project01')
+
+# Read the CSV file
+input_file <- "input_palimsest.csv"
+data <- read.csv(input_file)
+
+# Filter rows where Variant_Type is "SNP"
+filtered_data <- data %>%
+  filter(Variant_Type == "SNP")
+
+# Specify the output file name
+output_file <- "filtered_palimsest.csv"
+
+# Write the filtered data to a new CSV file
+write.csv(filtered_data, file = output_file, row.names = FALSE)
+
+# Print a message to confirm the task completion
+cat("Filtered data saved to", output_file, "\n")
