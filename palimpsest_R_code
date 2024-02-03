@@ -1,0 +1,50 @@
+rm(list=ls())
+library(data.table)
+library(Palimpsest)
+library(BSgenome.Hsapiens.UCSC.hg19)
+genes <- c("ALKBH1","ALKBH2","ALKBH3","ALKBH4","ALKBH5","ALKBH6","ALKBH7","ALKBH8")
+mutations <- c("Frame_Shift_Ins", "Missense_Mutation", "Splice_Site", "Nonsense_Mutation", "Frame_Shift_Del", "In_Frame_Del", "In_Frame_Ins")
+## Input preparation
+setwd("/home/ambuj/vandana_s_hlt/project01/NEW_MUT_SIG")
+mat <-fread("data_mutations.txt")
+
+mat <- as.data.frame(mat)
+mutated_samples <- unique(mat[(mat$Variant_Classification %in% mutations) & (mat$Hugo_Symbol %in% genes),]$Tumor_Sample_Barcode)
+mutations <- mat[mat$Tumor_Sample_Barcode %in% mutated_samples,]
+mutations <- mutations[,c(17,11,5,6,12,14)]
+mutations$Variant_Type[mutations$Variant_Type=="SNP"] <- "SNV"
+mutations <- mutations[!mutations$Variant_Type=="ONP",]
+colnames(mutations) <- c("Sample", "Type", "CHROM", "POS", "REF", "ALT")
+write.table(mutations, file="x.txt", sep="\t", quote=F, row.names=F)
+## Palimpsest ##
+resdir <- "./"
+## Loading new version of cosmic SBS
+#SBS_cosmic <- read.table("sigProfiler_SBS_signatures_2019_05_22.mod.txt")
+SBS_cosmic <- read.table("/home/ambuj/vandana_s_hlt/project01/NEW_MUT_SIG/SBS_signatures_v3.3_06_2022.mod.txt")
+SBS_cosmic <- as.matrix(SBS_cosmic)
+## Annotate VCF with SBS & DBS categories only
+vcf <- mutations
+vcf$CHROM <- paste("chr", vcf$CHROM, sep="")
+vcf <- vcf[!grepl("chrGL", vcf$CHROM),]
+vcf <- vcf[!grepl("chrMT", vcf$CHROM),]
+vcf <- annotate_VCF(vcf = vcf, ref_genome = BSgenome.Hsapiens.UCSC.hg19, add_ID_cats = F)
+SBS_input <- palimpsest_input(vcf = vcf, Type = "SBS")
+SBS_denovo_sigs <- NMF_Extraction(input_matrices = SBS_input, num_of_sigs=3, nrun = 10, resdir = resdir)
+cosine_similarity <- compare_results(reference_sigs = SBS_cosmic,extraction_1 = SBS_denovo_sigs)
+write.table(cosine_similarity, file=paste(resdir, "cosine_similarity.txt", sep=""), sep="\t", quote=F, row.names=F)
+pdf(paste(resdir, "cosine_similarity.pdf", sep=""))
+SBS_cosine_similarities <- deconvolution_compare(SBS_denovo_sigs,SBS_cosmic)
+save(SBS_cosine_similarities, file = file.path(resdir, "Cosine_Similarity_matrix.RData"))
+dev.off()
+## Denovo signature contribution in each sample
+# Define signature colours for plotting
+SBS_col <- signature_colour_generator(rownames(SBS_denovo_sigs))
+#SBS_col <- c("#E5C494", "#984EA3","#A65628", "#386CB0", "#B3DE69") 
+SBS_col <- c("#984EA3", "#386CB0", "#B3DE69")
+names(SBS_col) <- c("SBS_denovo_1", "SBS_denovo_2", "SBS_denovo_3")
+# Calculate and plot the exposure of the signatures across the series
+SBS_signatures_exp_denovo <- deconvolution_fit(input_matrices = SBS_input, input_signatures = SBS_denovo_sigs, signature_colours = SBS_col, resdir = resdir)
+save(SBS_signatures_exp_denovo, file=paste(resdir, "SBS_signatures_exp_denovo.RData", sep=""))
+pdf(paste(resdir, "signature_contribution_denovo.pdf", sep=""))
+deconvolution_exposure(signature_contribution = SBS_signatures_exp_denovo, signature_colours = SBS_col)
+dev.off()
