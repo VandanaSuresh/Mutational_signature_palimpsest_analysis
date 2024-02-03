@@ -1,0 +1,31 @@
+SBS_denovo_sigs <- NMF_Extraction(input_matrices = SBS_input, num_of_sigs=95, nrun = 10, resdir = resdir)
+cosine_similarity <- compare_results(reference_sigs = SBS_cosmic,extraction_1 = SBS_denovo_sigs)
+write.table(cosine_similarity, file=paste(resdir, "cosine_similarity.txt", sep=""), sep="\t", quote=F, row.names=F)
+pdf(paste(resdir, "cosine_similarity.pdf", sep=""))
+SBS_cosine_similarities <- deconvolution_compare(SBS_denovo_sigs,SBS_cosmic)
+save(SBS_cosine_similarities, file = file.path(resdir, "Cosine_Similarity_matrix.RData"))
+dev.off()
+# Generate random color codes for SBS categories
+num_colors <- nrow(SBS_cosmic)
+random_colors <- replicate(num_colors, paste0("#", paste0(sample(0:15, 6, replace = TRUE), collapse = "")))
+
+# Assign random colors to SBS categories
+names(random_colors) <- rownames(SBS_cosmic)
+
+# Continue with your analysis, using random_colors for plotting or visualization
+
+# For example, if you want to see the random colors assigned to SBS categories:
+print(random_colors)
+
+## Denovo signature contribution in each sample
+# Define signature colours for plotting
+SBS_col <- signature_colour_generator(rownames(SBS_denovo_sigs))
+#SBS_col <- c("#E5C494", "#984EA3","#A65628", "#386CB0", "#B3DE69")
+SBS_col <- c("#984EA3", "#386CB0", "#B3DE69")
+names(SBS_col) <- c("SBS_denovo_1", "SBS_denovo_2", "SBS_denovo_3")
+# Calculate and plot the exposure of the signatures across the series
+SBS_signatures_exp_denovo <- deconvolution_fit(input_matrices = SBS_input, input_signatures = SBS_denovo_sigs, signature_colours = SBS_col, resdir = resdir)
+save(SBS_signatures_exp_denovo, file=paste(resdir, "SBS_signatures_exp_denovo.RData", sep=""))
+pdf(paste(resdir, "signature_contribution_denovo.pdf", sep=""))
+deconvolution_exposure(signature_contribution = SBS_signatures_exp_denovo, signature_colours = SBS_col)
+dev.off()
